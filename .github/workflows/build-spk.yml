@@ -1,0 +1,130 @@
+name: Build Synology SPK Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      applications:
+        description: 'Application list'
+        required: false
+        default: ''
+        type: string
+  push:
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'LICENSE'
+    branches:
+      - main
+      - release/**
+  pull_request:
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'LICENSE'
+
+permissions:
+  contents: write
+
+env:
+  SYNOLOGY_VERSION: 7.2
+  SYNOLOGY_PLATFORM: braswell
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout SynologyOpenSource pkgscripts-ng
+        id: checkout_pkgscripts_ng
+        uses: actions/checkout@v3
+        with:
+          repository: SynologyOpenSource/pkgscripts-ng
+          ref: DSM${{ env.SYNOLOGY_VERSION }}
+          path: pkgscripts-ng
+
+      - name: Checkout git repository
+        id: checkout_source
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: synology-spk
+
+      - name: Get current date
+        id: date
+        shell: bash
+        run: echo "date_stamp=$(date +'%Y%m%d')" >> "$GITHUB_ENV"
+
+      - name: Get app list
+        id: apps_list
+        shell: bash
+        run: |
+          cd ${{ github.workspace }}/synology-spk
+
+          if [ "${{ github.event.inputs.applications }}" != "" ];then
+            if [ "${{ github.event.inputs.applications }}" = "all" ];then
+              apps_list=$(ls -1t source)
+            else
+              apps_list="${{ github.event.inputs.applications }}"
+            fi
+          else
+            apps_list=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} ${{ github.event.before }} -- source | cut -d '/' -f2 | sort | uniq | sed ':a;N;s/\n/\ /g;ta')
+          fi
+          echo "apps_list=$apps_list" >> "$GITHUB_ENV"
+
+      - name: Print environments
+        id: print_environments
+        shell: bash
+        run: |
+          printf 'date_stamp: [%s]\n' "$date_stamp"
+          printf 'apps_list: [%s]\n' "$apps_list"
+
+      - name: Build packages
+        id: build_packages
+        shell: bash
+        if: env.apps_list != ''
+        #working-directory: .
+        run: |
+          sudo apt update -qq
+          sudo apt install -qqy build-essential git imagemagick cifs-utils python3 python3-pip rsync aria2
+          sudo rsync -ar ${{ github.workspace }}/pkgscripts-ng/ /pkgscripts-ng/
+          sudo rsync -ar ${{ github.workspace }}/synology-spk/source/ /source/
+
+          ### paepare the env
+          cd /pkgscripts-ng
+          git checkout DSM${{ env.SYNOLOGY_VERSION }}
+          sudo ./EnvDeploy -v ${{ env.SYNOLOGY_VERSION }} -p ${{ env.SYNOLOGY_PLATFORM }}
+
+          for app in ${apps_list}
+          do
+            printf 'start to build: [%s]' "$app"
+            ### build the package
+            sudo /pkgscripts-ng/PkgCreate.py -v ${{ env.SYNOLOGY_VERSION }} -p ${{ env.SYNOLOGY_PLATFORM }} -c ${app}
+            ### paepare the release files
+            source /source/${app}/INFO.sh
+            sudo mv /result_spk/${app}-${version}/${app}-x86_64-${version}.spk ${{ github.workspace }}/
+          done;
+
+      - uses: ncipollo/release-action@v1
+        id: release_packages
+        if: env.apps_list != ''
+        with:
+          artifacts: "${{ github.workspace }}/*.spk"
+          #bodyFile: "/source/README.md"
+          allowUpdates: true
+          generateReleaseNotes: false
+          tag: "v${{ env.date_stamp }}"
+          body: |
+            ${{ github.event.head_commit.message }}
+            ${{ steps.print_environments.outputs.content }}
+
+      # - name: Create Release
+      #   id: create_release
+      #   uses: actions/create-release@latest
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: v${{steps.version.outputs.value}}
+      #     release_name: v${{steps.version.outputs.value}}
+      #     body: ${{steps.description.outputs.content}}
+      #     draft: false
+      #     prerelease: false
