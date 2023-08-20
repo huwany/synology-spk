@@ -1,0 +1,27 @@
+[Unit]
+Description=HashiCorp Consul - A service mesh solution
+Documentation=https://www.consul.io/docs/
+#Requires=network-online.target
+#After=network-online.target
+ConditionFileNotEmpty=/var/packages/consul/target/app/conf/default.hcl
+
+IgnoreOnIsolate=no
+DefaultDependencies=yes
+
+[Service]
+Environment="GOMAXPROCS=`nproc`"
+Type=simple
+#StandardOutput=null
+#StandardError=null
+ExecStart=/usr/local/bin/consul agent -config-dir=/var/packages/consul/target/app/conf
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Synology]
+Name=Consul

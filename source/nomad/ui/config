@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "Nomad.Hashicorp": {
+            "allUsers": true,
+            "desc": "Hashicorp Nomad",
+            "icon": "images/{0}.png",
+            "port": "4646",
+            "protocol": "http",
+            "title": "Hashicorp Nomad",
+            "type": "url",
+            "url": "/"
+        }
+    }
+}

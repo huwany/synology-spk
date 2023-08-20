@@ -1,0 +1,27 @@
+[Unit]
+Description=HashiCorp Nomad - Orchestration made easy
+Documentation=https://nomadproject.io/docs/
+#Requires=network-online.target
+#After=network-online.target
+ConditionFileNotEmpty=/var/packages/nomad/target/app/conf/default.hcl
+
+IgnoreOnIsolate=no
+DefaultDependencies=yes
+
+[Service]
+Environment="GOMAXPROCS=`nproc`"
+Type=simple
+#StandardOutput=null
+#StandardError=null
+ExecStart=/usr/local/bin/nomad agent -config=/var/packages/nomad/target/app/conf
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+
+[X-Synology]
+Name=Nomad

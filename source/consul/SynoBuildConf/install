@@ -1,0 +1,67 @@
+#!/bin/bash
+# Copyright (C) 2000-2020 Synology Inc. All rights reserved.
+
+### Use PKG_DIR as working directory.
+PKG_DIR=/tmp/_${PackageName}_spk
+rm -rf ${PKG_DIR}
+mkdir -p ${PKG_DIR}
+
+### get spk packing functions
+. /pkgscripts-ng/include/pkg_util.sh
+
+. INFO.sh
+
+create_package_tgz() {
+	local firewere_version=
+	local package_tgz_dir=/tmp/_${PackageName}_tgz
+	local binary_dir=${package_tgz_dir}/usr/local/bin
+
+	### clear destination directory
+	rm -rf ${package_tgz_dir} && mkdir -p ${package_tgz_dir}
+
+	### install needed file into PKG_DIR
+	mkdir -p $binary_dir
+	curl -fslL -k ${app_download_link}/${app_checksum_file} -o /tmp/${app_checksum_file}
+	#aria2c -c ${app_download_link}/${app_checksum_file} -d /tmp/
+	sha256sum --ignore-missing -c ${app_checksum_file} > /dev/null 2>&1
+	if [ $? -ne 0 ]; then
+	    curl -fslL -k ${app_download_link}/${app_download_file} -o /tmp/${app_download_file}
+		#aria2c -c ${app_download_link}/${app_download_file} -d /tmp
+	fi
+	unzip /tmp/${app_download_file} -d $binary_dir
+	cp -av ui ${package_tgz_dir}
+	#make install DESTDIR="${package_tgz_dir}"
+
+    ## copy app config files into /var/packages/PKG_NAME/target/
+	cp -av app ${package_tgz_dir}
+
+	### create package.tgz $1: source_dir $2: dest_dir
+	pkg_make_package ${package_tgz_dir} "${PKG_DIR}"
+}
+
+create_spk(){
+
+	cp -av scripts ${PKG_DIR}/scripts
+	cp -av PACKAGE_ICON*.PNG ${PKG_DIR}
+	#cp -av WIZARD_UIFILES ${PKG_DIR}
+	cp -av conf ${PKG_DIR}
+	cp -av ui ${PKG_DIR}
+	cp -av LICENSE ${PKG_DIR}
+
+	./INFO.sh > INFO
+	cp INFO ${PKG_DIR}/INFO
+
+	### Create the final spk.
+	# pkg_make_spk <source path> <dest path> <spk file name>
+	# Please put the result spk into /image/packages
+	# spk name functions: pkg_get_spk_name pkg_get_spk_unified_name pkg_get_spk_family_name
+	mkdir -p /image/packages
+	pkg_make_spk ${PKG_DIR} "/image/packages" $(pkg_get_spk_family_name)
+}
+
+main() {
+	create_package_tgz
+	create_spk
+}
+
+main "$@"

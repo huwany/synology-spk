@@ -1,0 +1,6 @@
+{   
+    "systemd-user-unit": {},
+    "usr-local-linker": {
+        "bin": ["usr/local/bin/nomad"]
+    }
+}

@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "Vault.Hashicorp": {
+            "allUsers": true,
+            "desc": "Hashicorp Vault",
+            "icon": "images/{0}.png",
+            "port": "8200",
+            "protocol": "http",
+            "title": "Hashicorp Vault",
+            "type": "url",
+            "url": "/"
+        }
+    }
+}

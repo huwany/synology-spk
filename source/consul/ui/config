@@ -1,0 +1,14 @@
+{
+    ".url": {
+        "Consul.Hashicorp": {
+            "allUsers": true,
+            "desc": "Hashicorp Consul",
+            "icon": "images/{0}.png",
+            "port": "8500",
+            "protocol": "http",
+            "title": "Hashicorp Consul",
+            "type": "url",
+            "url": "/"
+        }
+    }
+}

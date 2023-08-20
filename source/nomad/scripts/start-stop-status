@@ -1,0 +1,34 @@
+#!/bin/bash
+# Copyright (c) 2000 - present Synology Inc. All rights reserved.
+
+PACKAGE_ENABLED=/var/packages/nomad/enabled
+PACNAGE_BINLINK=/usr/local/bin/nomad
+
+
+
+case "$1" in
+  start)
+    /usr/syno/bin/synosystemctl start pkguser-nomad
+    exit 0
+    ;;
+
+  stop)
+    /usr/syno/bin/synosystemctl stop pkguser-nomad
+    exit 0
+    ;;
+
+  restart)
+    /usr/syno/bin/synosystemctl stop pkguser-nomad
+    exit 0
+    ;;
+
+
+  status)
+    if [ -h "${PACNAGE_BINLINK}" ] && [ -f "${PACKAGE_ENABLED}" ]; then
+      exit 0
+    else
+      exit 1
+    fi
+    ;;
+
+esac
